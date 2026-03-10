@@ -1,0 +1,46 @@
+name: CI Benchmark
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - monkci-ubuntu-24.04-4-6000iops
+          - monkci-ubuntu-24.04-4-4000iops
+          - monkci-ubuntu-24.04-4-3900iops
+          - monkci-ubuntu-24.04-4-3600iops
+          - depot-ubuntu-24.04-4
+          - ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: "10"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          cache: "gradle"
+          java-version: "21"
+
+      - name: Run tests
+        run: ./gradlew clean check --configuration-cache --configuration-cache-problems=warn
+
+      - name: Build
+        run: ./gradlew clean downloadPluginPresets build -x check --configuration-cache --configuration-cache-problems=warn
